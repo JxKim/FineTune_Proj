@@ -42,9 +42,14 @@ else:
 model.eval()
 
 
-output_ids = model.generate(inputs=input_ids,attention_mask=attention_mask,max_new_tokens=5000,)[0][len(input_ids[0]):].tolist()
+output_ids = model.generate(inputs=input_ids,attention_mask=attention_mask,max_new_tokens=5000,eos_token_id=[151643,151645])[0][len(input_ids[0]):].tolist()
 print('当前的output_ids位：',output_ids)
-index = len(output_ids) - output_ids[::-1].index(151668)
+try:
+    # 151668为</think>的token_id
+    index = len(output_ids) - output_ids[::-1].index(151668)
+except Exception:
+    # 没有thinking
+    index = 0
 thinking_content = tokenizer.decode(output_ids[:index],skip_special_tokens=True).strip("\n")
 content = tokenizer.decode(output_ids[index:],skip_special_tokens=True).strip("\n")
 print("thinking content为：",thinking_content)
