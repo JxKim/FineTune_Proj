@@ -5,17 +5,18 @@ from datasets import load_dataset
 from trl.trainer.sft_config import SFTConfig
 from trl.trainer.sft_trainer import SFTTrainer
 import torch
-os.environ["TENSORBOARD_LOGGING_DIR"] = "./logs/Qwen3-8B-sft-unsloth"
-model_name = "/root/autodl-tmp/sft_train/model/Qwen3-8B"
+os.environ["TENSORBOARD_LOGGING_DIR"] = "./logs/Qwen3-8B-SFT-unsloth"
+model_name = "Qwen/Qwen3-8B" 
 
+# 使用unsloth加载模型
 model,tokenizer = FastLanguageModel.from_pretrained(
     model_name=model_name,
     max_seq_length=2048,
     dtype=None,
-    local_files_only=True,
     load_in_4bit=True # 加载4bit模型
 )
 
+# 加载LoRA适配器
 model = FastLanguageModel.get_peft_model(
     model=model,
     r=8,
@@ -31,8 +32,6 @@ model = FastLanguageModel.get_peft_model(
     lora_alpha=8,
     lora_dropout=0.05,
     bias="none",
-    use_gradient_checkpointing=True,
-    random_state=3407
 )
 dataset_dict = load_dataset('json', data_files={"train": "data/keywords_data_train.jsonl",
                                                 "test": "data/keywords_data_test.jsonl"})
@@ -53,7 +52,7 @@ dataset_dict = dataset_dict.map(map_func, batched=False,
 # 将对话格式的数据转为字符串（Chat Templete）
 tokenizer = get_chat_template(
     tokenizer,
-    chat_template="qwen3",  # change this to the right chat_template name
+    chat_template="qwen3",  # 使用Qwen3的对话模板
 )
 
 def formatting_prompts_func(examples):
@@ -65,15 +64,16 @@ dataset_dict = dataset_dict.map(formatting_prompts_func, batched=True, remove_co
 
 # Configure trainer
 training_args = SFTConfig(
-    output_dir="./finetuned/Qwen3-8B-sft-unsloth",
+    output_dir="./finetuned/Qwen3-8B-SFT-unsloth",
     num_train_epochs=1,
     per_device_train_batch_size=4,
+    gradient_accumulation_steps=3,
     learning_rate=5e-5,
-    logging_steps=400,
-    save_steps=400,
+    logging_steps=100,
+    save_steps=100,
     save_total_limit=2,
     eval_strategy="steps",
-    eval_steps=400,
+    eval_steps=100,
     load_best_model_at_end=True,
     bf16=True,
     warmup_steps=0.1,
@@ -91,7 +91,7 @@ trainer = SFTTrainer(
 
 trainer.train()
 # 保存LoRA适配器
-trainer.save_model("./finetuned/Qwen3-8B-sft-unsloth-best")
+trainer.save_model("./finetuned/Qwen3-8B-SFT-unsloth")
 
 # 保存合并模型
-model.save_pretrained_merged("./finetuned/Qwen3-8B-sft-unsloth-merged", tokenizer, save_method="merged_16bit")
+model.save_pretrained_merged("./finetuned/Qwen3-8B-SFT-unsloth-merged", tokenizer, save_method="merged_16bit")

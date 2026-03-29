@@ -12,7 +12,7 @@ from transformers import TrainerCallback
 import torch
 from transformers import TrainerCallback
 import os
-os.environ["TENSORBOARD_LOGGING_DIR"] = "./logs/Qwen3-8B-sft-QLora"
+os.environ["TENSORBOARD_LOGGING_DIR"] = "./logs/Qwen3-8B-SFT-QLoRA"
 
 quantization_config = BitsAndBytesConfig(
     load_in_4bit=True,
@@ -51,15 +51,16 @@ peft_config = LoraConfig(
 )
 
 training_args = SFTConfig( 
-    output_dir="./finetuned/Qwen3-8B-sft-QLora",
+    output_dir="./finetuned/Qwen3-8B-SFT-QLoRA",
     per_device_train_batch_size=4,
+    gradient_accumulation_steps=3,
     num_train_epochs=1,
     learning_rate=5e-5, 
-    logging_steps=400,
-    save_steps=400,
+    logging_steps=100,
+    save_steps=100,
     save_total_limit=2,
     eval_strategy="steps",
-    eval_steps=400,
+    eval_steps=100,
     load_best_model_at_end=True,
     bf16=True,
     warmup_steps=0.1,
@@ -76,4 +77,4 @@ trainer = SFTTrainer(
 )
 
 trainer.train()
-trainer.save_model("./finetuned/Qwen3-8B-sft-QLora-best")
+trainer.save_model("./finetuned/Qwen3-8B-SFT-QLoRA")
